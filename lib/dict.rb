@@ -6,8 +6,10 @@ class Maker
 	def initialize(dir='./data/', out='./output/resultant.txt')
 		@in_dir = dir
 		@out_file = out
-		@dict = Array.new(20)
+		@dict = Hash.new
 		@vowels = 'AEIOUY'
+		@all_words = []
+		start_with_known()
 	end
 
 	def consume_words
@@ -32,9 +34,18 @@ class Maker
 		return lines
 	end
 
+	def start_with_known
+		w = IO.readlines("./output/resultant.txt")
+		w.each { |c| c.chomp! }
+		w.delete_if{ |bad|
+			keep_word?(bad) == false
+		}
+		hash_words(w)
+	end
+
 	def normalize(line)
 	#removes special chars and makes the line just words
-		line.gsub!(/[^[:alpha:]]/, ' ')
+		line.gsub!(/[^[:alpha:]']/, ' ')
 		line.squeeze!(' ')
 		line.strip!
 		return line
@@ -46,6 +57,13 @@ class Maker
 		return true
 	end
 	
+	def keep_word?(word)
+		if word.count(@vowels) < 1 then return false end
+		if word.count("'") > 1 then return false end
+
+			return true
+	end
+
 	def read_each_file(files)
 		lines = []
 		files.each { |f|
@@ -75,27 +93,31 @@ class Maker
 
 	def write_to_file(data, file=@out_file)
 		File.open(file, 'w') { |f| 
-			data.each { |d|
-				f.write((d.to_s + "\n"))
-
+			data.each { |h, k|
+				f.write((h + "\n"))
 			}
 		}
 	end
 
 	def split_lines(lines = @all_lines)
-		words = Hash.new
 		lines.each { |l|
 			line_w = l.split
-			hash_words(words, line_w)
+			@all_words.concat(line_w)
 		}
-		return words
+		return @all_words
 	end
 
-	def hash_words(words, line)
-		line.each { |w|
-			words.merge!(w => w.length)
+	def hash_words(words=@all_words)
+		new_words = 0
+		words.each { |w|
+			if keep_word?(w)
+				if @dict.key?(w) then next end
+				@dict.merge!(w => w.length)
+				new_words += 1
+			end
 		}
-		return words
+		puts new_words.to_s
+		return @dict
 	end
 
 	def consume_words

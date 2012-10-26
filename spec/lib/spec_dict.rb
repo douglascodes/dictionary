@@ -9,6 +9,8 @@ class TestDictMaker
 			@m = Maker.new
 			@f = @m.find_all_texts
 			@l = @m.read_each_file(['pg84.txt'])
+			@words = @m.split_lines(@l)
+			@w = @m.hash_words(@words)
 		end
 
 		it "should read each file in the directory /data" do
@@ -59,14 +61,17 @@ class TestDictMaker
 		end
 
 		it "should write to the resultant.txt file" do
-			@m.write_to_file(@l)
+			@m.write_to_file(@w)
 			f = @m.find_all_texts('./output/')
 			f[0].should eq('resultant.txt')
 		end
 
 		it "should create a word hash, including only new words" do
-			@m.all_words.should be_true
+			@w.key?('THE').should be_true
+			@m.dict.should be_true
+			@m.dict.key?('IS').should be_true
 		end
+
 	end
 
 
