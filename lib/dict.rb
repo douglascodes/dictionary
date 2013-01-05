@@ -8,6 +8,7 @@ class Maker
 		@out_file = out
 		@dict = Hash.new
 		@vowels = 'AEIOUY'
+		@all_chars = [*('A'..'Z')] << '-' << '\''
 		@all_words = []
 		start_with_known()
 	end
@@ -17,29 +18,30 @@ class Maker
 	end
 
 	def read_all_lines(text, lines)
-		text_body = false
+		# text_body = false
+		# The commented lines are for limiting the ingested text
+		# I do not think it is relevant anymore to do that. Left in for
+		# understanding
 		text.each { |line|
 			line.upcase!
-				if text_body
-					if detect_end_of_gute(line)
-						break
-					end
+				# if text_body
+				# 	if detect_end_of_gute(line)
+				# 		break
+				# 	end
 					if keep_line?(line) then lines << normalize(line) end
-				else
-					if detect_start_of_gute(line)
-						text_body = true
-					end
-				end
+				# else
+				# 	if detect_start_of_gute(line)
+				# 		text_body = true
+				# 	end
+				# end
 			}
 		return lines
 	end
 
 	def start_with_known
+		return unless File.exist?("./output/resultant.txt")
 		w = IO.readlines("./output/resultant.txt")
 		w.each { |c| c.chomp! }
-		w.delete_if{ |bad|
-			keep_word?(bad) == false
-		}
 		hash_words(w)
 	end
 
@@ -58,29 +60,35 @@ class Maker
 	end
 	
 	def keep_word?(word)
-		if word.count(@vowels) < 1 then return false end
-		if word.count("'") > 1 then return false end
+		return false if word.count(@vowels) < 1
+		return false if word[0] == "'"
+		return false if word.count("'") > 1
+		return false if word[-1] == "'"
+		return false if count_for_triples(word)
+		return true
+	end
 
-			return true
+	def count_for_triples(word)
+		a = b = c = nil
+		word.each_char { |ch| 
+			if not @all_chars.include? ch then return true end
+				# also checks to see if the character is of the allowed kind
+			c = b
+			b = a 
+			return true if ch == b && b == c && nil != c
+			a = ch
+		}
+		return false
 	end
 
 	def read_each_file(files)
 		lines = []
-		files.each { |f|
+		if not files[0] then return end
+		f = files[0]
 			full_text = IO.readlines((@in_dir + f))
-			lines = read_all_lines(full_text, lines)	
-		}
+			lines = read_all_lines(full_text, lines)
+			File.delete((@in_dir + f))	
 		return lines
-	end
-
-	def detect_start_of_gute(line)
-		if line.start_with?('*** START OF THIS PROJECT'.upcase) then return true end
-		return false
-	end
-
-	def detect_end_of_gute(line)
-	if line.start_with?('End of the Project'.upcase) then return true end
-		return false
 	end
 
 	def find_all_texts(dir=@in_dir)
@@ -93,13 +101,14 @@ class Maker
 
 	def write_to_file(data, file=@out_file)
 		File.open(file, 'w') { |f| 
-			data.each { |h, k|
+			data.each_key { |h|
 				f.write((h + "\n"))
 			}
 		}
 	end
 
 	def split_lines(lines = @all_lines)
+		if not lines then return end
 		lines.each { |l|
 			line_w = l.split
 			@all_words.concat(line_w)
@@ -109,13 +118,15 @@ class Maker
 
 	def hash_words(words=@all_words)
 		new_words = 0
-		words.each { |w|
-			if keep_word?(w)
+		if words
+			words.each { |w|
 				if @dict.key?(w) then next end
-				@dict.merge!(w => w.length)
-				new_words += 1
-			end
-		}
+					if keep_word?(w)
+					@dict.merge!(w => w.length)
+					new_words += 1
+					end
+			}
+		end
 		puts new_words.to_s
 		return @dict
 	end

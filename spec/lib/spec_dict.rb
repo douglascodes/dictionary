@@ -7,23 +7,24 @@ class TestDictMaker
 
 		before do
 			@m = Maker.new
-			@f = @m.find_all_texts
-			@l = @m.read_each_file(['pg84.txt'])
+			@m.in_dir = './seed/'
+			@f = @m.find_all_texts()
+			@l = @m.read_each_file(@f)
 			@words = @m.split_lines(@l)
 			@w = @m.hash_words(@words)
 		end
 
-		it "should read each file in the directory /data" do
-			@f.length.should eq(3)
+		it "should read each file in the directory ./seed/" do
+			@f.length.should eq(9)
 		end
 
 		it "should read each file line by line" do
 			@l = @m.read_each_file(@f)
-			@l.length.should eq(24791)
+			@l.length.should be > 1000
 		end
 
 		it "should append each file to the all_lines"	do
-			@l.length.should eq(6428)
+			@l.length.should be > 2000
 		end
 
 		it "should ignore Gutenberg text lines" do
@@ -66,12 +67,16 @@ class TestDictMaker
 			f[0].should eq('resultant.txt')
 		end
 
-		it "should create a word hash, including only new words" do
+		it "should check the word hash" do
 			@w.key?('THE').should be_true
 			@m.dict.should be_true
 			@m.dict.key?('IS').should be_true
 		end
 
+		it "should detect words with letters repeated three times" do
+			@m.count_for_triples('Abracadabra').should be_false
+			@m.count_for_triples('XXIII').should be_true
+		end
 	end
 
 
